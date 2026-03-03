@@ -1,267 +1,77 @@
-import { User } from '../types';
-import { useState, FormEvent, useEffect } from 'react';
-import { UserPlus, ArrowLeft, Loader2, LogIn } from 'lucide-react';
+import { useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { LogIn, UserPlus } from 'lucide-react';
 
-interface LoginProps {
-  onLogin: (user: User) => void;
-}
-
-export default function Login({ onLogin }: LoginProps) {
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [formData, setFormData] = useState({ name: '', username: '', password: '', bio: '' });
-  const [loginData, setLoginData] = useState({ username: '', password: '' });
+export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [branding, setBranding] = useState({ name: 'Pemilihan Agen Perubahan', subtitle: 'Pengadilan Agama Prabumulih', logo: '' });
 
-  useEffect(() => {
-    fetch('/api/settings/general')
-      .then(res => res.json())
-      .then(data => {
-        setBranding({ 
-          name: data.appName || 'Pemilihan Agen Perubahan', 
-          subtitle: data.appSubtitle || 'Pengadilan Agama Prabumulih',
-          logo: data.appLogoUrl || ''
-        });
-      })
-      .catch(err => console.error('Failed to fetch branding', err));
-  }, []);
-
-  const handleLoginSuccess = (user: User) => {
-    localStorage.setItem('userId', user.id.toString());
-    onLogin(user);
-  };
-
-  const handleLogin = async (e: FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginData)
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        handleLoginSuccess(data);
-      } else {
-        setError(data.error || 'Login failed');
-      }
-    } catch (err) {
-      setError('Failed to login');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRegister = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccessMsg('');
-
-    try {
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        setSuccessMsg(data.message || 'Pendaftaran berhasil. Silakan tunggu persetujuan admin.');
-        setIsRegistering(false);
-        setFormData({ name: '', username: '', password: '', bio: '' });
-      } else {
-        setError(data.error || 'Registration failed');
-      }
-    } catch (err) {
-      setError('Failed to register');
-    } finally {
-      setLoading(false);
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) alert(error.message);
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {branding.logo && (
-          <div className="flex justify-center mb-4">
-            <img src={branding.logo} alt="Logo" className="h-20 w-auto object-contain" />
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-extrabold text-slate-900 mb-2">E-Voting App</h1>
+        <p className="text-slate-500 font-medium">Aplikasi Pemilihan</p>
+      </div>
+
+      <div className="w-full max-w-[450px] bg-white rounded-2xl shadow-xl shadow-slate-200/60 p-8 border border-slate-100">
+        <h2 className="text-xl font-bold text-center text-slate-800 mb-8">Login ke Akun Anda</h2>
+        
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
+            <input 
+              type="email" 
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              placeholder="Masukkan email"
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
           </div>
-        )}
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900">
-          {branding.name}
-        </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
-          {branding.subtitle}
-        </p>
-      </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {isRegistering ? (
-            <form onSubmit={handleRegister} className="space-y-6">
-              <div className="flex items-center mb-4">
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    setIsRegistering(false);
-                    setError('');
-                    setSuccessMsg('');
-                  }}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h3 className="text-lg font-medium text-slate-900 ml-2">Daftar Akun Baru</h3>
-              </div>
-              
-              {error && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+            <input 
+              type="password" 
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              placeholder="Masukkan password"
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-700">Nama Lengkap</label>
-                <input
-                  id="name"
-                  type="text"
-                  required
-                  className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                />
-              </div>
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+          >
+            <LogIn size={20} />
+            {loading ? 'Memproses...' : 'Masuk'}
+          </button>
+        </form>
 
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-slate-700">Username</label>
-                <input
-                  id="username"
-                  type="text"
-                  required
-                  className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                  value={formData.username}
-                  onChange={e => setFormData({...formData, username: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                  value={formData.password}
-                  onChange={e => setFormData({...formData, password: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="bio" className="block text-sm font-medium text-slate-700">Bio (Opsional)</label>
-                <textarea
-                  id="bio"
-                  rows={3}
-                  className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                  value={formData.bio}
-                  onChange={e => setFormData({...formData, bio: e.target.value})}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Daftar & Masuk'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleLogin} className="space-y-6">
-              <h3 className="text-lg font-medium text-slate-900 text-center mb-4">Login ke Akun Anda</h3>
-              
-              {successMsg && (
-                <div className="bg-emerald-50 text-emerald-600 p-3 rounded-lg text-sm text-center">
-                  {successMsg}
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="login-username" className="block text-sm font-medium text-slate-700">Username</label>
-                <input
-                  id="login-username"
-                  type="text"
-                  required
-                  className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                  value={loginData.username}
-                  onChange={e => setLoginData({...loginData, username: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="login-password" className="block text-sm font-medium text-slate-700">Password</label>
-                <input
-                  id="login-password"
-                  type="password"
-                  required
-                  className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-                  value={loginData.password}
-                  onChange={e => setLoginData({...loginData, password: e.target.value})}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                  <>
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Masuk
-                  </>
-                )}
-              </button>
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-slate-500">Atau</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRegistering(true);
-                  setError('');
-                  setSuccessMsg('');
-                }}
-                className="w-full flex justify-center items-center py-2 px-4 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Daftar Baru
-              </button>
-            </form>
-          )}
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100"></span></div>
+          <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-4 text-slate-400 font-medium">Atau</span></div>
         </div>
+
+        <button 
+          className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+        >
+          <UserPlus size={20} />
+          Daftar Baru
+        </button>
       </div>
+
+      <p className="mt-8 text-slate-400 text-sm font-medium italic">Agen Perubahan PA Prabumulih</p>
     </div>
   );
 }
